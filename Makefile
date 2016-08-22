@@ -6,3 +6,5 @@ all:
 
 plots:
 	python plot_fits_results.py
+	python plot_residual_hist2d_for_certain_pixel.py
+	python look_at_bsl_and_residual.py
