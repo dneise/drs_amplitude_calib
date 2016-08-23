@@ -33,7 +33,7 @@ for n, g in tqdm(all_drs_step2.groupby("fNight")):
             mask = (pd.Series(t["datetime"]) > start) & (pd.Series(t['datetime']) < stop)
             payload = np.array(t[mask.values]["temp"])
             if len(payload) > 1:
-                row["drs_temp"] = payload.mean()
+                row["drs_temp_mean"] = payload.mean()
                 row["drs_temp_rms"] = payload.std()
     except FileNotFoundError:
         pass
@@ -42,8 +42,9 @@ all_drs_step2["duration"] = all_drs_step2.fRunStop - all_drs_step2.fRunStart
 all_drs_step2["Time"] = all_drs_step2.fRunStart + all_drs_step2.duration/2
 all_drs_step2.set_index("Time", inplace=True)
 
-all_drs_step2 = all_drs_step2[~pd.isnull(all_drs_step2.drs_temp)]
+all_drs_step2 = all_drs_step2[~pd.isnull(all_drs_step2.drs_temp_mean)]
 all_drs_step2 = all_drs_step2[all_drs_step2.fNight > 20150528]
 all_drs_step2 = all_drs_step2[all_drs_step2.fROI == 300]
 
+print(len(all_drs_step2))
 all_drs_step2.to_hdf("all_drs_step2.h5", "all_drs_step2")
