@@ -10,11 +10,8 @@ from tqdm import tqdm
 
 db = fact.credentials.create_factdb_engine()
 all_drs_step2 = pd.read_sql("select * from RunInfo where fDrsStep=2 and fNight>20160528 and fROI=300", db)
-all_drs_step2["drs_temp_mean"] = np.nan
-all_drs_step2["drs_temp_rms"] = np.nan
 
-
-output = []
+mean, std = [], []
 
 for n, g in tqdm(all_drs_step2.groupby("fNight")):
     n = str(n)
@@ -32,12 +29,21 @@ for n, g in tqdm(all_drs_step2.groupby("fNight")):
             stop = row.fRunStop
             mask = (pd.Series(t["datetime"]) > start) & (pd.Series(t['datetime']) < stop)
             payload = np.array(t[mask.values]["temp"])
-            if len(payload) > 1:
-                row["drs_temp_mean"] = payload.mean()
-                row["drs_temp_rms"] = payload.std()
-    except FileNotFoundError:
-        pass
+            if len(payload):
+                mean.append( payload.mean() )
+                std.append( payload.std() )
+            else:
+                mean.append( np.nan )
+                std.append( np.nan )
 
+    except FileNotFoundError:
+        for row_id in range(len(g)):
+            mean.append( np.nan )
+            std.append( np.nan )
+
+
+all_drs_step2["drs_temp_mean"] = np.array(mean) 
+all_drs_step2["drs_temp_std"] = np.array(std) 
 all_drs_step2["duration"] = all_drs_step2.fRunStop - all_drs_step2.fRunStart
 all_drs_step2["Time"] = all_drs_step2.fRunStart + all_drs_step2.duration/2
 all_drs_step2.set_index("Time", inplace=True)
