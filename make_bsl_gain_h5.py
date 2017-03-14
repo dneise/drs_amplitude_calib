@@ -34,9 +34,9 @@ for chunk_id in trange(len(df)//chunk_N + 1):
             break
 
         path = "/fact/raw/{y:04d}/{m:02d}/{d:02d}/{n}_{r:03d}.drs.fits.gz".format(
-            y=n // 10000,
-            d=n % 100,
-            m=(n // 100) % 100,
+            y=run.fNight // 10000,
+            d=run.fNight % 100,
+            m=(run.fNight // 100) % 100,
             n=run.fNight,
             r=run.fRunID
         )
