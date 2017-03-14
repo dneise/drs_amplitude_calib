@@ -8,9 +8,9 @@ import numpy as np
 from sklearn import linear_model, datasets
 import h5py
 
-res_f = h5py.File("resis.h5")
+res_f = h5py.File("fit_results.h5")
 plots = [
-    (res_f["SSE"][...], "SSE", (0, 120)),
+    (res_f["SSE"][...], "SSE", (None, None)),
     (res_f["alpha"][...], "alpha", (None, None)),
     (res_f["beta"][...], "beta", (None, None)),
 ]
@@ -32,5 +32,5 @@ for plot,plot_name,ylim in plots:
         ax.grid(True)
     plt.draw()
     plt.title(plot_name)
-    plt.savefig(plot_name+"_1.png")
+    plt.savefig(plot_name+".png")
     plt.close("all")
