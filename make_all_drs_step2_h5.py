@@ -33,7 +33,7 @@ for n, night_group in tqdm(df.groupby("fNight")):
         t = Table.read(path)
         aux_file_time = pd.to_datetime(t["Time"]*24*3600*1e9, unit="ns")
 
-        for row in night_group.iterrows():
+        for _, row in night_group.iterrows():
             run_start = row.fRunStart - pd.Timedelta(seconds=30)
             run_stop = row.fRunStop + pd.Timedelta(seconds=30)
             mask = (aux_file_time > run_start) & (aux_file_time < run_stop)
