@@ -43,5 +43,5 @@ for n, night_group in tqdm(df.groupby("fNight")):
         print(e)
         pass
 
-df = df[~pd.isnull(df.drs_temp_mean)]
+df = df[~pd.isnull(df.drs_T_000)]
 df.to_hdf("all_drs_step2.h5", "all_drs_step2")
