@@ -9,45 +9,35 @@ import numpy as np
 from tqdm import tqdm
 
 db = fact.credentials.create_factdb_engine()
-df = pd.read_sql("select * from RunInfo where fDrsStep=0 and fNight>20150528 and fNight<20160825 and fROI=1024", db)
-df["drs_temp_mean"] = np.nan
+df = pd.read_sql("""
+    SELECT *
+    FROM RunInfo
+    WHERE fDrsStep=0
+        AND fROI=1024
+    """, db)
 for i in range(160):
     df["drs_T_{0:03d}".format(i)] = np.nan
-df["drs_temp_time"] = pd.tslib.Timedelta(0)
-df["drs_temp_rms"] = np.nan
-df["drs_temp_slope_K_per_s"] = np.nan
 df["duration"] = df.fRunStop - df.fRunStart
 df["Time"] = df.fRunStart + df.duration/2
 df.set_index("Time", inplace=True)
 
-
-mean, std = [], []
-
-for n, g in tqdm(df.groupby("fNight")):
+for n, night_group in tqdm(df.groupby("fNight")):
     path = "aux/{n}.FAD_CONTROL_TEMPERATURE.fits".format(n=n)
 
     try:
         t = Table.read(path)
-        t["datetime"] = pd.to_datetime(t["Time"]*24*3600*1e9, unit="ns")
+        aux_file_time = pd.to_datetime(t["Time"]*24*3600*1e9, unit="ns")
 
-        for row_id in range(len(g)):
-            row = g.iloc[row_id]
-            r = row.fRunID
-            start = row.fRunStart - pd.Timedelta(seconds=30)
-            stop = row.fRunStop + pd.Timedelta(seconds=30)
-            mask = (pd.Series(t["datetime"]) > start) & (pd.Series(t['datetime']) < stop)
-            payload = np.array(t[mask.values]["temp"])
+        for row in night_group.itertuples():
+            run_start = row.fRunStart - pd.Timedelta(seconds=30)
+            run_stop = row.fRunStop + pd.Timedelta(seconds=30)
+            mask = (aux_file_time > run_start) & (aux_file_time < run_stop)
+            run_drs_temperatures = np.array(t[mask.values]["temp"])
 
-            if len(payload) > 1:
-                ttt = np.array(t[mask.values]["Time"])*24*3600
-                slope, _ = np.polyfit(ttt - ttt.mean(), payload.mean(axis=1), 1)
-                df.ix[row.name, "drs_temp_time"] = stop - start
-                df.ix[row.name, "drs_temp_mean"] = payload.mean()
-                for i, TT in enumerate(payload.mean(axis=0)):
+            if len(run_drs_temperatures) > 1:
+                run_aux_times_in_s = np.array(t[mask.values]["Time"])*24*3600
+                for i, TT in enumerate(run_drs_temperatures.mean(axis=0)):
                     df.ix[row.name, "drs_T_{0:03d}".format(i)] = TT
-                df.ix[row.name, "drs_temp_rms"] = payload.std()
-                df.ix[row.name, "drs_temp_slope_K_per_s"] = slope
-
 
     except FileNotFoundError as e:
         print(e)
