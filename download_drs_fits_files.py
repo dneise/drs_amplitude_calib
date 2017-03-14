@@ -13,10 +13,10 @@ def download(src, dest, really=False):
     if not os.path.isfile(destname):
         os.system("scp "+ src + " " + dest)
 
-drs_runs = pd.HDFStore("all_drs_step2.h5")["all"]
+drs_runs = pd.read_hdf("all_drs_step2.h5")
 path_temp = "isdc:/fact/raw/{y}/{m}/{d}/{n}_{r:03d}.drs.fits.gz"
 
-for run in tqdm(drs_runs.itertuples()):
+for timestamp, run in tqdm(drs_runs.iterrows(), total=len(drs_runs)):
     n, r = run.fNight, run.fRunID
     n = str(n)
     y,m,d = n[0:4], n[4:6], n[6:8]
