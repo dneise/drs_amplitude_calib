@@ -5,34 +5,37 @@ import os
 from astropy.io import fits
 from tqdm import tqdm, trange
 import numpy as np
-from sklearn import linear_model, datasets
+from sklearn import linear_model
 import h5py
 
-plt.ion()
-get_ipython().magic('matplotlib')
-
-x = pd.HDFStore("all_drs_step2.h5")["all"].sort_values("temp_mean")
-bsl = h5py.File("h5/bsl_gain.h5", "r")["bsl"]
+x = pd.read_hdf("all_drs_step2.h5")
+bsl = h5py.File("bsl.h5", "r")["bsl"]
 chunk_N = bsl.chunks[-1]
-T = (x.temp_mean - x.temp_mean.mean()).values
+res_f = h5py.File("fit_results.h5", "w")
 
-beta = np.zeros((1440, 1024), dtype='f8')
-alpha = np.zeros((1440, 1024), dtype='f8')
-SSE = np.zeros((1440, 1024), dtype='f8')
+beta = res_f.create_dataset("beta", shape=(1440, 1024), dtype='f8')
+alpha = res_f.create_dataset("alpha", shape=(1440, 1024), dtype='f8')
+SSE = res_f.create_dataset("SSE", shape=(1440, 1024), dtype='f8')
 
-for j in trange(bsl.shape[-1]//chunk_N, leave=True):
-    for k in trange(chunk_N):
-        i = j*chunk_N + k
-        if i >= bsl.shape[-1]:
-            break
+N_cells = bsl.shape[-1]
 
-        foo = bsl[:,:,j*chunk_N:(j+1)*chunk_N]
-        beta[:,i], alpha[:,i] = np.polyfit(T, foo[:,:,k], 1)
-        hey = alpha[:,i] + T[:, None] * beta[:,i] - foo[:,:,k]
-        SSE[:,i] = np.sqrt((hey**2).sum(axis=0))
+for cell_chunk_id in trange(N_cells//chunk_N, leave=True):
+    cell_slice=slice(cell_chunk_id * chunk_N, (cell_chunk_id + 1) * chunk_N)
+
+    bsl_chunk = bsl[:, :, cell_slice]
+    for chip_id in range(160):
+        T = x["drs_T_{0:03d}".format(chip_id)].values
+        for cell_in_chunk in range(chunk_N):
+            cell_id = cell_in_chunk + cell_chunk_id * chunk_N
+
+            if cell_id >= N_cells:
+                break
+
+            p_slice=slice(chip_id*9, (chip_id+1)*9)
 
 
-res_f = h5py.File("h5/resis.h5", "w")
-res_f.create_dataset("alpha", data=alpha)
-res_f.create_dataset("beta", data=beta)
-res_f.create_dataset("SSE", data=SSE)
+            fit = np.polyfit(T, bsl_chunk[:, p_slice, cell_in_chunk], deg=1)
+            beta[p_slice, cell_id], alpha[p_slice, cell_id] = fit
+
+            resi = alpha[p_slice, cell_id] + T[:, None] * beta[p_slice, cell_id] - bsl_chunk[:, p_slice, cell_in_chunk]
+            SSE[p_slice, cell_id] = np.sqrt((resi**2).sum(axis=0))
