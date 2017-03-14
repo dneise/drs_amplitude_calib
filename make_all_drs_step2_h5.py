@@ -22,7 +22,12 @@ df["Time"] = df.fRunStart + df.duration/2
 df.set_index("Time", inplace=True)
 
 for n, night_group in tqdm(df.groupby("fNight")):
-    path = "/fact/aux/{n}.FAD_CONTROL_TEMPERATURE.fits".format(n=n)
+    path = "/fact/aux/{y:04d}/{m:02d}/{d:02d}/{n}.FAD_CONTROL_TEMPERATURE.fits.gz".format(
+        n=n,
+        y=n // 10000,
+        d=d % 100,
+        m=(n // 100) % 100,
+    )
 
     try:
         t = Table.read(path)
