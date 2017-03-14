@@ -37,10 +37,10 @@ for n, night_group in tqdm(df.groupby("fNight")):
             run_start = row.fRunStart - pd.Timedelta(seconds=30)
             run_stop = row.fRunStop + pd.Timedelta(seconds=30)
             mask = (aux_file_time > run_start) & (aux_file_time < run_stop)
-            run_drs_temperatures = np.array(t[mask.values]["temp"])
+            run_drs_temperatures = np.array(t[mask]["temp"])
 
             if len(run_drs_temperatures) > 1:
-                run_aux_times_in_s = np.array(t[mask.values]["Time"])*24*3600
+                run_aux_times_in_s = np.array(t[mask]["Time"])*24*3600
                 for i, TT in enumerate(run_drs_temperatures.mean(axis=0)):
                     df.ix[row.name, "drs_T_{0:03d}".format(i)] = TT
 
