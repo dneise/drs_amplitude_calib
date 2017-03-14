@@ -50,8 +50,29 @@ for chunk_id in trange(len(df)//chunk_N + 1):
                 b = b.round().astype(np.int16)
                 b_chunk[i, ...] = b[...]
         except FileNotFoundError:
-            print(path, "not found")
-            pass
+
+
+            path = "/scratch/neise/drs.fits.gz/{y:04d}/{m:02d}/{d:02d}/{n}_{r:03d}.drs.fits.gz".format(
+                y=n // 10000,
+                d=n % 100,
+                m=(n // 100) % 100,
+                n=run.fNight,
+                r=run.fRunID
+            )
+
+            try:
+                with fits.open(path) as f:
+                    b = f[1].data["BaselineMean"].reshape(1440, -1)
+                    b *= 4096/2000
+                    b *= 4
+
+                    b = b.round().astype(np.int16)
+                    b_chunk[i, ...] = b[...]
+            except FileNotFoundError:
+                print(path, "not found")
+                pass
+        pass
+
 
     s = slice(chunk_id*chunk_N, (chunk_id+1) * chunk_N)
     try:
